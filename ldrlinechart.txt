@@ -1,0 +1,119 @@
+<?php
+    // connection
+    $conn = mysqli_connect("localhost", "root", "root", "projek");
+
+    // read all data from tbl_esp table 
+    $sql = mysqli_query($conn, "SELECT ldr FROM tbl_esp ORDER BY ID DESC LIMIT 1");
+
+    // baca ID tertinggi
+    $sql_ID = mysqli_query($conn, "SELECT MAX(ID) FROM tbl_esp");
+    // fetch the data
+    $data_ID = mysqli_fetch_array($sql_ID);
+
+    // fetch the data
+    $data_ldr = array();
+    while ($row = mysqli_fetch_assoc($sql)) {
+        $data_ldr[] = $row['ldr'];
+    }
+?>
+
+<!-- Include ApexCharts library from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<!-- Gauge display -->
+<div class="panel panel-primary">
+    <div class="panel-heading" style="color:black">
+        <h1>Real-Time LDR Data</h1>
+    </div>
+
+    <div class="panel-body">
+        <!-- Chart display -->
+        <div id="chart"></div>
+
+        <!-- Script for updating the chart -->
+        <script>
+            // Initialize the chart with default values
+            var options = {
+                chart: {
+                    type: 'radialBar',
+                },
+                plotOptions: {
+                    radialBar: {
+                        startAngle: -90,
+                        endAngle: 90,
+                        hollow: {
+                            margin: 15,
+                            size: '50%', // Adjust the size to 50% for half gauge
+                        },
+                        track: {
+                            background: '#fff',
+                            strokeWidth: '50%', // Adjust the strokeWidth to 50% for half gauge
+                            margin: 15,
+                        },
+                        dataLabels: {
+                            showOn: 'always',
+                            name: {
+                                offsetY: -10,
+                                show: true,
+                                color: '#888',
+                                fontSize: '17px',
+                            },
+                            value: {
+                                color: '#111',
+                                fontSize: '36px',
+                                show: true,
+                                formatter: function (val) {
+                                    return val; // Display the value without percentage
+                                }
+                            }
+                        }
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        type: 'horizontal',
+                        shadeIntensity: 0.5,
+                        gradientToColors: ['#ABE5A1'],
+                        inverseColors: true,
+                        opacityFrom: 1,
+                        opacityTo: 1,
+                        stops: [0, 100]
+                    },
+                },
+                series: [0],
+                labels: ['LDR Value'],
+                min: 0, // Set the minimum value for the gauge
+                max: 5000, // Set the maximum value for the gauge
+            };
+
+            var chart = new ApexCharts(document.querySelector("#chart"), options);
+            chart.render();
+
+            // Function to update the chart with new values
+            function updateChart(newValues) {
+                chart.updateSeries(newValues);
+            }
+
+            // Function to get the latest LDR values and update the chart
+            function fetchAndUpdate() {
+                // Fetch the latest LDR values using AJAX
+                $.ajax({
+                    url: "sensor.php",
+                    method: "GET",
+                    success: function(data) {
+                        // Update the chart with the latest values
+                        updateChart(data);
+                    }
+                });
+            }
+
+            // Update the chart initially
+            updateChart(<?php echo json_encode($data_ldr); ?>);
+
+            // Fetch and update the chart every 5 seconds (adjust as needed)
+            setInterval(fetchAndUpdate, 2000);
+        </script>
+    </div>
+</div>
